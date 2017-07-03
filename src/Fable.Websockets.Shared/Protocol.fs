@@ -117,12 +117,4 @@ module Protocol =
         | Msg of 'applicationProtocol
         | Closed of ClosedEvent
         | Opened
-        | Error
-
-
-    
-
-
-
-
-    
+        | Error of string option
