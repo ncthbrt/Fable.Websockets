@@ -113,6 +113,27 @@ module Protocol =
       | code when (code>=4000us && code<=4999us) -> Application code
       | code -> OutOfRange code
 
+    let public fromClosedCode (code: ClosedCode) =
+      match code with 
+      | Normal -> 1000us
+      | GoingAway -> 1001us 
+      | ProtocolError -> 1002us
+      | Unsupported -> 1003us
+      | NoStatus -> 1005us
+      | Abnormal -> 1006us
+      | InconsistentData -> 1007us
+      | PolicyViolation -> 1008us
+      | TooLarge -> 1009us 
+      | MissingExtension -> 1010us
+      | InternalError -> 1011us
+      | Restarting -> 1012us
+      | TryAgainLater->1013us
+      | TLSHandshake -> 1015us
+      | Reserved r -> r
+      | Extension e -> e
+      | Registered r -> r
+      | Application a -> a
+      | OutOfRange o -> failwith "Status code not in valid range. Rather use 4000-4999"
 
     type ClosedEvent = { code: ClosedCode; reason:string; wasClean: bool }
 
@@ -121,15 +142,3 @@ module Protocol =
         | Closed of ClosedEvent
         | Opened
         | Error of string option
-
-
-    type SocketObservable<'applicationProtocol> ()=
-        interface IObservable<SocketEvent<'applicationProtocol>> with
-            member this.Subscribe(obs) =                
-                { new IDisposable with 
-                    member this.Dispose() = 
-                        lock thisLock (fun () -> subscriptions <- subscriptions.Remove(key1)) 
-                }
-
-
-          
