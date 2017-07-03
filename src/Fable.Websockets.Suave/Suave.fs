@@ -10,8 +10,10 @@ module Suave =
 
     let private jsonConverter = Fable.JsonConverter() :> JsonConverter
     let private fromJson value = JsonConvert.DeserializeObject(value, [|jsonConverter|])
-
-    let private ws<'serverProtocol,'clientProtocol> (webSocket : WebSocket) (context: HttpContext) handler =
+    let private toJson value = JsonConvert.SerializeObject(value, [|jsonConverter|])
+    type WebsocketListner =
+      
+    let private ws<'serverProtocol,'clientProtocol> (webSocket : WebSocket) (context: HttpContext) handler =      
         socket {
         // if `loop` is set to false, the server will stop receiving messages
         let mutable loop = true
@@ -39,7 +41,6 @@ module Suave =
                 Msg command
               with 
                 | :? Newtonsoft.Json.JsonException as e -> Error <| Some e.ToString()
-                          
             
             // the response needs to be converted to a ByteSegment
             let byteResponse =
@@ -47,11 +48,10 @@ module Suave =
               |> System.Text.Encoding.UTF8.GetBytes
               |> ByteSegment
             
-            // the `send` function sends a message back to the client
-            do! webSocket.send Text byteResponse true
+            do! webSocket.send Text byteResponse true            
 
-          | (Close, _, _) ->
-            let emptyResponse = [||] |> ByteSegment
+          | (Close, data, _) ->
+            let emptyResponse = [||] |> ByteSegment            
             do! webSocket.send Close emptyResponse true
 
             // after sending a Close message, stop the loop

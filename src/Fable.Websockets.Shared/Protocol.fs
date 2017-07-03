@@ -1,6 +1,9 @@
 namespace Fable.Websockets
 
 module Protocol =     
+    open Microsoft.FSharp.Control
+    open System
+
     (* RFC6455 compliant mapping of closed codes *)
     type ClosedCode = 
         | Normal                    (* 1000 indicates a normal closure, meaning that the purpose for
@@ -118,3 +121,15 @@ module Protocol =
         | Closed of ClosedEvent
         | Opened
         | Error of string option
+
+
+    type SocketObservable<'applicationProtocol> ()=
+        interface IObservable<SocketEvent<'applicationProtocol>> with
+            member this.Subscribe(obs) =                
+                { new IDisposable with 
+                    member this.Dispose() = 
+                        lock thisLock (fun () -> subscriptions <- subscriptions.Remove(key1)) 
+                }
+
+
+          
