@@ -2,97 +2,95 @@ namespace Fable.Websockets
 
 module Suave =
     open Newtonsoft.Json
-    open Fable.Websockets.Protocol
+    open Microsoft.FSharp.Control
+    open Fable.Websockets.Protocol    
+    open Fable.Websockets.Server
+    open Fable.Websockets.Observables
     open Suave.Sockets
     open Suave.Sockets.Control
     open Suave.WebSocket
-    open Suave.Http
-    
+    open Suave.Http    
+    open System.Threading
 
     let private jsonConverter = Fable.JsonConverter() :> JsonConverter
     let private fromJson value = JsonConvert.DeserializeObject(value, [|jsonConverter|])
     let private toJson value = JsonConvert.SerializeObject(value, [|jsonConverter|])
     let private flip f a b = f (b,a)
 
-    let sendCloseFrame (webSocket:WebSocket) (code:ClosedCode) reason = socket {        
+    let private sendCloseFrame (webSocket:WebSocket) (code:ClosedCode) reason = socket {        
         let firstBytes = code |> fromClosedCode |> System.BitConverter.GetBytes // First 16 bits are for code
         let secondBytes = reason |> UTF8.bytes // Rest is for reason
         let okStatusCode = Array.concat [firstBytes;secondBytes] |> ByteSegment              
         do! webSocket.send Close okStatusCode true              
     }
 
-    
-    let private sendMessage<'clientProtocol> (webSocket: WebSocket) (payload:'clientProtocol) = async {
-      let! socketResult = socket {
-          let jsonVal = toJson payload |> UTF8.bytes |> ByteSegment
-          do! webSocket.send Text jsonVal true                        
-      }
-      return ()
-    }
-
-    let toSocketOp (task : Async<unit>): Async<Choice<unit,Error>> = 
-      async {
-        let! _ = task
-        return (Choice1Of2 ())
-      }
-
-    // TODO: implement proper error handling semantics
-    let fromSocketOp (task : SocketOp<unit>): Async<unit> = 
-      async {
-        let! _ = task
+    let private sendMessage<'clientProtocol> (webSocket: WebSocket) (payload:'clientProtocol) = 
+      (async {
+        let! socketResult = socket {
+            let jsonVal = toJson payload |> UTF8.bytes |> ByteSegment
+            do! webSocket.send Text jsonVal true                        
+        }
         return ()
-      }
+      }) |> Async.StartImmediate
 
+    let private decodeMsgPayload<'serverProtocol> data: WebsocketEvent<'serverProtocol> = 
+       try  
+          (UTF8.toString >> fromJson >> Msg) data
+       with 
+          | e -> Exception e       
 
-    let private ws<'serverProtocol,'clientProtocol> (webSocket : WebSocket) (context: HttpContext) onConnection =      
-      socket { 
-        // if `loop` is set to false, the server will stop receiving messages        
-        let mutable loop = true        
+    let private decodeClosedPayload<'serverProtocol> data: WebsocketEvent<'serverProtocol> = 
+          let code = data |> Array.take 2 |> (flip System.BitConverter.ToUInt16) 0 |> toClosedCode
+          let reason = data |> Array.skip 2 |> UTF8.toString                                      
+          Closed {code=code; reason=reason; wasClean=true}
+
+    let inline private readMessage<'serverProtocol> data: WebsocketEvent<'serverProtocol> option = 
+      match data with
+      | (Text, data, true) ->  decodeMsgPayload<'serverProtocol> data |> Some
+      | (Close, data, _) -> decodeClosedPayload<'serverProtocol> data |> Some
+      | _ -> None
+
+    let private ws<'serverProtocol,'clientProtocol> (websocket : WebSocket) (context: HttpContext) (onConnection:OnConnectionEstablished<'serverProtocol, 'clientProtocol>) =      
+      socket {
+
+        use cancellationTokenSource = new CancellationTokenSource()
+        let token = cancellationTokenSource.Token      
+                
+        let closeHandle code reason =
+          if cancellationTokenSource.IsCancellationRequested then
+            ()
+          else 
+            do cancellationTokenSource.Cancel()
+
+            sendCloseFrame websocket code reason 
+            |> Async.RunSynchronously
+            |> ignore                                         
+
+        let subject = Subject<WebsocketEvent<'serverProtocol>> ()
+
+        let onMessageObservable = onConnection closeHandle subject
         
-        let onMessageObservable : (SocketEvent<'serverProtocol> -> Async<unit>) = 
-            onConnection context 
-                         (sendMessage<'clientProtocol> webSocket)                          
-                         (fun code reason -> 
-                            (socket {                      
-                                loop <-false
-                                let! result = (sendCloseFrame webSocket code reason)
-                                return ()
-                              } |> fromSocketOp)
-                         )
+        // Subscribe to messages from server to client.
+        // Forward them to client
+        let subscription = onMessageObservable.Subscribe (sendMessage websocket)
+        
+        // Send the subject a message indicating that the connection has been opened
+        do subject.Next Opened
 
-        let onMessage = onMessageObservable >> toSocketOp
-
-        do! onMessage Opened
-
-        while loop do
-          // the server will wait for a message to be received without blocking the thread
-          let! msg = webSocket.read()
+        while not token.IsCancellationRequested do
+          // Get next message
+          let! rawMsg = websocket.read()
+          let msg = rawMsg |> readMessage<'serverProtocol>
           
-          do! socket {
-            match msg with          
-            | (Text, data, true) ->
-                          
-              let str = UTF8.toString data
-                          
-              let msg=
-                try
-                  let command:'serverProtocol = fromJson str
-                  Msg command
-                with 
-                  | :? Newtonsoft.Json.JsonException as e -> SocketEvent.Error << Some <| e.ToString ()
-                 
-              do! onMessage msg 
-
-            | (Close, data, _) ->              
-              let code = data |> Array.take 2 |> (flip System.BitConverter.ToUInt16) 0 |> toClosedCode
-              let reason = data |> Array.skip 2 |> UTF8.toString                                                        
+          match msg with           
+          | None -> () // Message is ignored in application level protocol
+          | Some msg ->                                       
+              match msg with 
+              | WebsocketEvent.Closed  { code=code ; reason=reason; wasClean=_ } -> 
+                // Cancel iteration and send client the close frame
+                closeHandle code reason
+              | _ -> ()            
               
-              // Respond to close request appropriately. End loop             
-              do! sendCloseFrame webSocket Normal "None"              
-              loop <- false
-              let event = SocketEvent.Closed {code=code; reason=reason; wasClean=true}
-              do! onMessage event
-
-            | _ -> return ()
-          }                 
+              // Send the server observable the current message
+              do subject.Next msg
       }

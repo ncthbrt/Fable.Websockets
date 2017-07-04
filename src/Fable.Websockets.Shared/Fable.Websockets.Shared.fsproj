@@ -3,7 +3,9 @@
     <TargetFramework>netstandard1.6</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Observables.fs" />
     <Compile Include="Protocol.fs" />
+    <Compile Include="Server.fs" />    
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.1.*" />

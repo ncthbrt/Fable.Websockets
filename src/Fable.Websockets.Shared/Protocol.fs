@@ -1,7 +1,6 @@
 namespace Fable.Websockets
 
-module Protocol =     
-    open Microsoft.FSharp.Control
+module Protocol =         
     open System
 
     (* RFC6455 compliant mapping of closed codes *)
@@ -137,8 +136,12 @@ module Protocol =
 
     type ClosedEvent = { code: ClosedCode; reason:string; wasClean: bool }
 
-    type SocketEvent<'applicationProtocol> = 
+    type WebsocketEvent<'applicationProtocol> = 
         | Msg of 'applicationProtocol
         | Closed of ClosedEvent
         | Opened
-        | Error of string option
+        | Error
+        | Exception of Exception
+
+    type CloseHandle = ClosedCode -> string -> unit
+    
