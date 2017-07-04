@@ -6,9 +6,9 @@
     <Compile Include="Client.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />
-    <!-- Keep dotnet-fable version synced with Fable.Core version in paket.dependencies -->
+    <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />    
     <DotNetCliToolReference Include="dotnet-fable" Version="1.1.3" />
+    <ProjectReference Include="../Fable.Websockets.Shared/Fable.Websockets.Shared.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

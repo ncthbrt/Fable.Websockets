@@ -58,26 +58,30 @@ module Suave =
         use cancellationTokenSource = new CancellationTokenSource()
         let token = cancellationTokenSource.Token      
                 
+
+        let receiveSubject = Subject<WebsocketEvent<'serverProtocol>> ()
+        let sendSubject = Subject<'clientProtocol> ()
+
         let closeHandle code reason =
           if cancellationTokenSource.IsCancellationRequested then
             ()
           else 
-            do cancellationTokenSource.Cancel()
+            cancellationTokenSource.Cancel()
+            sendSubject.Completed()
+            receiveSubject.Completed()
 
             sendCloseFrame websocket code reason 
             |> Async.RunSynchronously
-            |> ignore                                         
+            |> ignore 
 
-        let subject = Subject<WebsocketEvent<'serverProtocol>> ()
-
-        let onClientMessageObservable = onConnection closeHandle subject
+        do onConnection closeHandle receiveSubject sendSubject.Next
         
         // Subscribe to messages from server to client.
         // Forward them to client
-        let subscription = onClientMessageObservable.Subscribe (sendMessage websocket)
+        use subscription = sendSubject.Subscribe (sendMessage websocket)
         
         // Send the subject a message indicating that the connection has been opened
-        do subject.Next Opened
+        do receiveSubject.Next Opened
 
         while not token.IsCancellationRequested do
           // Get next message
@@ -94,7 +98,7 @@ module Suave =
               | _ -> ()            
               
               // Send the server observable the current message
-              do subject.Next msg
+              do receiveSubject.Next msg
       }
 
     let public websocket<'serverProtocol,'clientProtocol> (onConnectionEstablished:OnConnectionEstablished<'serverProtocol, 'clientProtocol>) =

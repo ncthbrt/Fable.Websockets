@@ -144,4 +144,26 @@ module Protocol =
         | Exception of Exception
 
     type CloseHandle = ClosedCode -> string -> unit
+
+    type SendMessage<'protocol> = 'protocol -> unit
     
+    type ReadyState =
+      | Connecting
+      | Open
+      | Closing
+      | Closed
+
+    let toReadyState: uint16 -> ReadyState =
+       function
+       | 0us -> Connecting
+       | 1us -> Open
+       | 2us -> Closing
+       | 3us -> Closed
+       | code -> failwithf "Invalid ready state %d" code
+
+    let fromReadyState: ReadyState -> uint16 =
+       function
+       | Connecting -> 0us
+       | Open -> 1us
+       | Closing -> 2us
+       | Closed -> 3us       
