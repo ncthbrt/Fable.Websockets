@@ -50,7 +50,9 @@ module Suave =
       | (Close, data, _) -> decodeClosedPayload<'serverProtocol> data |> Some
       | _ -> None
 
-    let private ws<'serverProtocol,'clientProtocol> (websocket : WebSocket) (context: HttpContext) (onConnection:OnConnectionEstablished<'serverProtocol, 'clientProtocol>) =      
+    let private ws<'serverProtocol,'clientProtocol> (onConnection:OnConnectionEstablished<'serverProtocol, 'clientProtocol>) 
+                                                    (websocket : WebSocket) 
+                                                    (_: HttpContext) =      
       socket {
 
         use cancellationTokenSource = new CancellationTokenSource()
@@ -94,3 +96,7 @@ module Suave =
               // Send the server observable the current message
               do subject.Next msg
       }
+
+    let public websocket<'serverProtocol,'clientProtocol> (onConnectionEstablished:OnConnectionEstablished<'serverProtocol, 'clientProtocol>) =
+      handShake (ws onConnectionEstablished)
+
