@@ -68,11 +68,11 @@ module Suave =
 
         let subject = Subject<WebsocketEvent<'serverProtocol>> ()
 
-        let onMessageObservable = onConnection closeHandle subject
+        let onClientMessageObservable = onConnection closeHandle subject
         
         // Subscribe to messages from server to client.
         // Forward them to client
-        let subscription = onMessageObservable.Subscribe (sendMessage websocket)
+        let subscription = onClientMessageObservable.Subscribe (sendMessage websocket)
         
         // Send the subject a message indicating that the connection has been opened
         do subject.Next Opened
