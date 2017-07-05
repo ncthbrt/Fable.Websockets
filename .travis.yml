@@ -1,5 +1,6 @@
 language: fsharp
 dotnet: 1.0.4
+mono: latest
 dist: trusty
 before_install:
   - chmod +x build.sh
