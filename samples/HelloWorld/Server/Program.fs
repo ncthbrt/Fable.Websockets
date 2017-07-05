@@ -42,8 +42,13 @@ let inline reducer source (prev, _: ServerState*'a option) (msg:ServerMsg) =
 
 let onConnectionEstablished close messageObservable source = 
     let initialState = { currentDirectory="./wwwroot"; user = None }        
-    do Challenge |> source     
     
+    // Send client initial challenge    
+    do Challenge |> source
+    
+    // If effects need to 
+    let recursiveActionSource = Subject()
+
     let reducer = 
         messageObservable |> 
         Observable.scan reducer (initialState, None)    
