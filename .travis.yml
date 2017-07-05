@@ -1,5 +1,7 @@
 language: fsharp
 dotnet: 1.0.4
 dist: trusty
+before_install:
+  - chmod +x build.sh
 script:
-  ./build.sh
+  - ./build.sh
