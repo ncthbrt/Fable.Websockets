@@ -1,6 +1,5 @@
 language: fsharp
 sudo: required
-
 dotnet: 1.0.4
 mono: latest
 dist: trusty
