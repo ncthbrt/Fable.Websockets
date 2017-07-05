@@ -17,17 +17,23 @@ open HelloWorld.Protocol
 
 type ServerState ={ currentDirectory:string; user: HelloWorld.Protocol.User option }
 
+ 
+type Event<'serverProtocol>  =
+    | SocketEvent of SocketEvent<'serverProtocol>
+    | FileEvent 
+
 type Effect<'clientProtocol> = 
     
     | Send of 'clientProtocol
-    | OpenDirectory of string 
+    | OpenDirectory of string
+    | NoEffect    
     
 let private onlySome obs = 
     obs 
     |> Observable.filter Option.isSome
     |> Observable.map Option.get
         
-let inline reducer source (prev:ServerState, _) (msg:ServerMsg) =
+let inline reducer source (prev, _: ServerState*'a option) (msg:ServerMsg) =
     match msg with 
     | Greet user ->  ({prev with user = Some user; }, Some Welcome)
     | ListCurrentDirectory -> prev,None
@@ -38,7 +44,9 @@ let onConnectionEstablished close messageObservable source =
     let initialState = { currentDirectory="./wwwroot"; user = None }        
     do Challenge |> source     
     
-    let reducer = messageObservable |> Observable.scan (fun (prev,action) msg -> (prev,action)) (initialState, None)    
+    let reducer = 
+        messageObservable |> 
+        Observable.scan reducer (initialState, None)    
 
     let effectObservable = 
         reducer 
