@@ -43,7 +43,6 @@ let public establishConnection<'serverProtocol, 'clientProtocol> (uri:Uri) =
     let receiveSubject = Observables.Subject<WebsocketEvent<'clientProtocol>>()
     let sendSubject = Observables.Subject<'serverProtocol>()
     
-
     let websocket = WebSocket.Create(uri.AbsolutePath)
     
     let connection = (sendSubject.Subscribe (sendMessage websocket receiveSubject))
