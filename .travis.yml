@@ -1,9 +1,11 @@
-language: fsharp
+language: csharp
 sudo: required
+dist: trusty
+
 dotnet: 1.0.4
 mono: latest
-dist: trusty
+
 before_install:
-  - chmod +x build.sh
+  - chmod +x ./build.sh
 script:
   - ./build.sh
