@@ -1,1 +1,3 @@
 FSharp.Core
+System.Reactive
+System.Reactive.Linq

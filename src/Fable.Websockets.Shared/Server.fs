@@ -6,4 +6,4 @@ module Server =
     open System        
 
     type OnConnectionEstablished<'serverProtocol, 'clientProtocol> = 
-      CloseHandle -> IObservable<WebsocketEvent<'serverProtocol>> -> SendMessage<'clientProtocol> -> unit 
+      CloseHandle -> IObservable<WebsocketEvent<'serverProtocol>> -> SendMessage<'clientProtocol> -> IDisposable

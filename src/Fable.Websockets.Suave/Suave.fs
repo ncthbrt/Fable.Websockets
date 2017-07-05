@@ -74,11 +74,15 @@ module Suave =
             |> Async.RunSynchronously
             |> ignore 
 
-        do onConnection closeHandle receiveSubject sendSubject.Next
+        // Hold reference to subscription until we exit this connection scope    
+        use applicationSubscription = onConnection closeHandle receiveSubject sendSubject.Next        
         
         // Subscribe to messages from server to client.
         // Forward them to client
         use subscription = sendSubject.Subscribe (sendMessage websocket)
+        
+        
+        
         
         // Send the subject a message indicating that the connection has been opened
         do receiveSubject.Next Opened
@@ -99,6 +103,7 @@ module Suave =
               
               // Send the server observable the current message
               do receiveSubject.Next msg
+                    
       }
 
     let public websocket<'serverProtocol,'clientProtocol> (onConnectionEstablished:OnConnectionEstablished<'serverProtocol, 'clientProtocol>) =

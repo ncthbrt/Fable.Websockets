@@ -13,3 +13,6 @@ nuget Fable.Import.Browser
 nuget Suave
 nuget Newtonsoft.Json
 nuget Fable.JsonConverter
+nuget FSharp.Control.Reactive
+nuget System.Reactive 4.0.0-preview00001
+nuget System.Reactive.Linq 4.0.0-preview00001

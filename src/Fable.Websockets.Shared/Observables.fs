@@ -39,3 +39,13 @@ module Observables =
                 member this.Dispose() =
                    lock sync <| remove observer
              }
+
+
+      type CompositeDisposable (values: IDisposable seq) =             
+            member private this.Values = values            
+                                
+            interface IDisposable with
+                  member this.Dispose () = this.Values |> Seq.iter (fun x-> x.Dispose())                  
+
+      module CompositeDisposable =
+            let public ofSeq sequence = new CompositeDisposable(sequence)
