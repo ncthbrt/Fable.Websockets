@@ -106,6 +106,7 @@ publish/
 
 # Enable nuget.exe in the .nuget folder (though normally executables are not tracked)
 !.nuget/NuGet.exe
+!.paket/paket.exe
 
 # Windows Azure Build Output
 csx

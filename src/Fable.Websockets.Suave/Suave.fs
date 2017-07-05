@@ -42,7 +42,7 @@ module Suave =
     let private decodeClosedPayload<'serverProtocol> data: WebsocketEvent<'serverProtocol> = 
           let code = data |> Array.take 2 |> (flip System.BitConverter.ToUInt16) 0 |> toClosedCode
           let reason = data |> Array.skip 2 |> UTF8.toString                                      
-          Closed {code=code; reason=reason; wasClean=true}
+          WebsocketEvent.Closed {code=code; reason=reason; wasClean=true}
 
     let inline private readMessage<'serverProtocol> data: WebsocketEvent<'serverProtocol> option = 
       match data with
