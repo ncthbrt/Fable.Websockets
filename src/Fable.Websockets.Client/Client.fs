@@ -38,12 +38,12 @@ let private sendMessage (websocket:WebSocket) (receiveSubject:Subject<WebsocketE
     
 
 
-let public establishConnection<'serverProtocol, 'clientProtocol> (uri:Uri) = 
+let public establishWebsocketConnection<'serverProtocol, 'clientProtocol> (uri:string) = 
 
     let receiveSubject = Observables.Subject<WebsocketEvent<'clientProtocol>>()
     let sendSubject = Observables.Subject<'serverProtocol>()
     
-    let websocket = WebSocket.Create(uri.AbsolutePath)
+    let websocket = WebSocket.Create(uri)
     
     let connection = (sendSubject.Subscribe (sendMessage websocket receiveSubject))
 

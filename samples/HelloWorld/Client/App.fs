@@ -1,8 +1,36 @@
-module Client
+module HelloWorld.Client
+
+open HelloWorld.Protocol
+
 
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
+
+open Elmish
+
+open Fable.Websockets.Client
+open Fable.Websockets.Observables
+
+type ConnectionState = NotConnected | Connected
+
+type ViewModel = 
+    | FileView of FileContents
+    | FolderListing of string*(FileReference list)    
+
+type Model = { connectionState: ConnectionState; viewModel: ViewModel option }
+
+let initialState () = { connectionState = NotConnected; viewModel = None }
+
+let reducer prevState event = 
+    prevState, Cmd.none
+
+let websocketSubscription initialState =
+    let subscription dispatcher = 
+        let (source, sink, closeHandle) = establishWebsocketConnection "ws://localhost:8083/"
+        ()
+                
+    Cmd.ofSub subscription
 
 let init() =
     let canvas = Browser.document.getElementsByTagName_canvas().[0]
