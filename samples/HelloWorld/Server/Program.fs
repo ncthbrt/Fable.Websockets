@@ -137,5 +137,8 @@ let main _ =
     if not <| Directory.Exists initialDirectory then 
         failwith "the wwwroot folder not present"        
     else    
-        startWebServer { defaultConfig with logger = Targets.create Verbose [||] } app
+        startWebServer { defaultConfig with 
+                            logger = Targets.create Verbose [||];       
+                            bindings = [ HttpBinding.createSimple HTTP "127.0.0.1" 8083 ]
+                       } app
         0

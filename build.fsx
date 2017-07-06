@@ -3,6 +3,7 @@
 
 open Fake
 open Fake.DotNetCli
+open Fake.ProcessHelper
 open Fake.FileSystem
 
 // Directories
@@ -16,18 +17,25 @@ let appReferences  =
     ++ "/**/*.fsproj"    
 
 
-let projectFolders  =  [ (filesInDirMatchingRecursive "*.fsproj" (directoryInfo "./"));  
-                         (filesInDirMatchingRecursive "*.csproj" (directoryInfo "./"))
+let projectFolders  =  [ (filesInDirMatchingRecursive "*.fsproj" (directoryInfo "./src"))  
+                         (filesInDirMatchingRecursive "*.csproj" (directoryInfo "./src"))
+                         (filesInDirMatchingRecursive "*.csproj" (directoryInfo "./samples/"))
+                         (filesInDirMatchingRecursive "*.fsproj" (directoryInfo "./samples/"))
                        ] 
                        |> Array.concat
                        |> Seq.map (fun m -> m.Directory.FullName)
 
-// version info
-let version = "0.1"  // or retrieve from CI server
 
 // Targets
 Target "Clean" (fun _ ->
     CleanDirs [buildDir; deployDir]
+)
+
+Target "YarnRestore" (fun _->     
+   let yarn = tryFindFileOnPath (if isUnix then "yarn" else "yarn.cmd") |> Option.get
+
+   Shell.Exec (yarn, "install", "./samples/HelloWorld/Client/") |> ignore
+   Shell.Exec (yarn, "install", "./src/Fable.Websockets.Client/") |> ignore
 )
 
 Target "Restore" (fun _->    
@@ -44,10 +52,21 @@ Target "Build" (fun _ ->
     |> ignore        
 )
 
+Target "Test" (fun _ -> ())
+
+Target "RunSample" (fun _ ->
+    // Start client
+    [ async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Server/"}) "run") }
+      async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Client/"}) "fable yarn-run start") }
+    ] |> Async.Parallel |> Async.RunSynchronously |> ignore
+)
 
 
 // Build order
-"Clean" ==> "Restore" ==> "Build"  
+"Clean" ==> "Restore" ==> "YarnRestore" ==> "Build"
+
+"Build" ==> "RunSample"
+"Build" ==> "Test"
 
 // start build
 RunTargetOrDefault "Build"
