@@ -35,7 +35,7 @@ module.exports = {
         test: /\.fs(x|proj)?$/,
         use: {
           loader: "fable-loader",
-          options: {
+          options: {            
             babel: babelOptions,
             define: isProduction ? [] : ["DEBUG"]
           }

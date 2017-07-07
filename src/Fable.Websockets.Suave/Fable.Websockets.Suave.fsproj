@@ -3,12 +3,14 @@
     <TargetFramework>netstandard1.6</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/Observables.fs" />
+    <Compile Include="../Shared/Protocol.fs" />
+    <Compile Include="Server.fs" />    
     <Compile Include="Suave.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.1.*" />    
-    <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />
-    <ProjectReference Include="../Fable.Websockets.Shared/Fable.Websockets.Shared.fsproj" />
+    <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />    
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

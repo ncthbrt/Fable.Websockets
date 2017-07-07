@@ -1,10 +1,14 @@
 namespace Fable.Websockets
-
 // Copied from http://www.fssnip.net/2E/title/ObservableSubject
 
 module Observables =
     open System
     open System.Collections.Generic
+
+    #if FABLE_COMPILER 
+    let inline lock _ action = action ()
+    #endif
+    
 
     type public Subject<'T> () =
        let sync = obj()

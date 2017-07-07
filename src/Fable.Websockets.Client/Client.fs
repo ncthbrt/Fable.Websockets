@@ -10,9 +10,11 @@ open Fable.Websockets.Observables
 open Fable.Websockets.Protocol
 
 let private toObj () = obj()
-let private receiveMessage<'clientProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (msgEvent:MessageEvent) =         
+
+let [<PassGenerics>] private receiveMessage<'clientProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (msgEvent:MessageEvent) =         
     try
-        (Msg << ofJson << string) msgEvent.data             
+        let msg = ofJson<'clientProtocol> (string msgEvent.data)
+        Msg msg
     with     
         | e -> Exception e   
     |> receiveSubject.Next
@@ -35,13 +37,14 @@ let private sendMessage (websocket:WebSocket) (receiveSubject:Subject<WebsocketE
         do websocket.send jsonMsg    
     with 
         | e -> receiveSubject.Next (Exception e)
-    
 
 
-let public establishWebsocketConnection<'serverProtocol, 'clientProtocol> (uri:string) = 
+let [<PassGenerics>] public establishWebsocketConnection<'serverProtocol, 'clientProtocol> (uri:string) : 
+    (('serverProtocol->unit)*IObservable<WebsocketEvent<'clientProtocol>>*(ClosedCode->string->unit)) = 
 
-    let receiveSubject = Observables.Subject<WebsocketEvent<'clientProtocol>>()
-    let sendSubject = Observables.Subject<'serverProtocol>()
+
+    let receiveSubject = Subject<WebsocketEvent<'clientProtocol>>() 
+    let sendSubject = Subject<'serverProtocol>()
     
     let websocket = WebSocket.Create(uri)
     
@@ -59,4 +62,4 @@ let public establishWebsocketConnection<'serverProtocol, 'clientProtocol> (uri:s
     websocket.onopen <- fun _ -> receiveSubject.Next Opened |> toObj                                 
     websocket.onerror <- fun _ -> receiveSubject.Next Error |> toObj                                     
     
-    (receiveSubject, sendSubject.Next, closeHandle)
+    (sendSubject.Next, receiveSubject :> IObservable<_>, closeHandle)

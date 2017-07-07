@@ -52,9 +52,7 @@ Target "Build" (fun _ ->
     |> ignore        
 )
 
-Target "Test" (fun _ -> ())
-
-Target "RunSample" (fun _ ->
+Target "RunElmishSample" (fun _ ->
     // Start client
     [ async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Server/"}) "run") }
       async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Client/"}) "fable yarn-run start") }
@@ -65,8 +63,7 @@ Target "RunSample" (fun _ ->
 // Build order
 "Clean" ==> "Restore" ==> "YarnRestore" ==> "Build"
 
-"Build" ==> "RunSample"
-"Build" ==> "Test"
+"Build" ==> "RunElmishSample"
 
 // start build
 RunTargetOrDefault "Build"

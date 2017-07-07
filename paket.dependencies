@@ -11,6 +11,7 @@ nuget Fable.Core 1.1.6
 nuget Fable.Import.Browser
 nuget Fable.Elmish
 nuget Fable.Elmish.React
+nuget Fable.React
 
 # server packages
 nuget Suave
