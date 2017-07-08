@@ -24,18 +24,25 @@ type ViewModel =
 
 type Model = { connectionState: ConnectionState; viewModel: ViewModel option }
 
+
+type ClientEvent = | WebsocketEvent of Fable.Websockets.Protocol.WebsocketEvent<ClientMsg>                       
 let initialState () = 
     { connectionState = NotConnected; viewModel = None }, Cmd.none
 
-let reducer prevState event = 
-    prevState, Cmd.none
+let reducer event prevState = 
+    match event with 
+    | WebsocketEvent e -> 
+        prevState, Cmd.none    
+
+
+let mutable observableSubscription:System.IDisposable Option = None
 
 let websocketSubscription initialState =
     let subscription dispatcher = 
-        let (sink,source, closeHandle) = establishWebsocketConnection<ServerMsg,ClientMsg> "ws://localhost:8083/"
-        source
-        |> Observable.subscribe (fun x->)
-
+        let (sink,source, closeHandle) = establishWebsocketConnection<ServerMsg,ClientMsg> "ws://127.0.0.1:8083/websocket"
+        
+        let subscription = source |> Observable.subscribe (ClientEvent.WebsocketEvent >> dispatcher)        
+        observableSubscription <- Some subscription
         ()
                     
     Cmd.ofSub subscription

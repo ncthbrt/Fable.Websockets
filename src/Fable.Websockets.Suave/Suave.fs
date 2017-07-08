@@ -40,11 +40,11 @@ module Suave =
           | e -> Exception e       
 
     let private decodeClosedPayload<'serverProtocol> data: WebsocketEvent<'serverProtocol> = 
-          let code = data |> Array.take 2 |> (flip System.BitConverter.ToUInt16) 0 |> toClosedCode
+          let code = data |> Array.take 2 |> Array.rev |> (flip System.BitConverter.ToUInt16) 0 |> toClosedCode
           let reason = data |> Array.skip 2 |> UTF8.toString                                      
           WebsocketEvent.Closed {code=code; reason=reason; wasClean=true}
 
-    let inline private readMessage<'serverProtocol> data: WebsocketEvent<'serverProtocol> option = 
+    let inline private readMessage<'serverProtocol> data: WebsocketEvent<'serverProtocol> option =     
       match data with
       | (Text, data, true) ->  decodeMsgPayload<'serverProtocol> data |> Some
       | (Close, data, _) -> decodeClosedPayload<'serverProtocol> data |> Some
@@ -79,10 +79,7 @@ module Suave =
         
         // Subscribe to messages from server to client.
         // Forward them to client
-        use subscription = sendSubject.Subscribe (sendMessage websocket)
-        
-        
-        
+        use subscription = sendSubject.Subscribe (sendMessage websocket)                        
         
         // Send the subject a message indicating that the connection has been opened
         do receiveSubject.Next Opened

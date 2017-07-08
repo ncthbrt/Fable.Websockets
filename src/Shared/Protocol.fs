@@ -132,7 +132,7 @@ module Protocol =
       | Extension e -> e
       | Registered r -> r
       | Application a -> a
-      | OutOfRange o -> failwith "Status code not in valid range. Rather use 4000-4999"
+      | OutOfRange o -> failwithf "Status code %d not in valid range. Rather use 4000-4999" o
 
     type ClosedEvent = { code: ClosedCode; reason:string; wasClean: bool }
 
@@ -166,4 +166,4 @@ module Protocol =
        | Connecting -> 0us
        | Open -> 1us
        | Closing -> 2us
-       | Closed -> 3us       
+       | Closed -> 3us
