@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Protocol.fs" />
+    <Compile Include="Elmish.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>
   <ItemGroup>
