@@ -32,9 +32,12 @@ let reducer prevState event =
 
 let websocketSubscription initialState =
     let subscription dispatcher = 
-        let (source, sink, closeHandle) = establishWebsocketConnection<ServerMsg,ClientMsg> "ws://localhost:8083/"
+        let (sink,source, closeHandle) = establishWebsocketConnection<ServerMsg,ClientMsg> "ws://localhost:8083/"
+        source
+        |> Observable.subscribe (fun x->)
+
         ()
-                
+                    
     Cmd.ofSub subscription
 
 
@@ -43,4 +46,5 @@ let view model dispatcher =
 
 Program.mkProgram initialState reducer view
 |> Program.withReact "root"
+|> Program.withSubscription websocketSubscription
 |> Program.run

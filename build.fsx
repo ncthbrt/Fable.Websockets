@@ -34,6 +34,7 @@ Target "Clean" (fun _ ->
 Target "YarnRestore" (fun _->     
    let yarn = tryFindFileOnPath (if isUnix then "yarn" else "yarn.cmd") |> Option.get
 
+   Shell.Exec (yarn, "install", "./") |> ignore
    Shell.Exec (yarn, "install", "./samples/HelloWorld/Client/") |> ignore
    Shell.Exec (yarn, "install", "./src/Fable.Websockets.Client/") |> ignore
 )
@@ -55,7 +56,7 @@ Target "Build" (fun _ ->
 Target "RunElmishSample" (fun _ ->
     // Start client
     [ async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Server/"}) "run") }
-      async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Client/"}) "fable yarn-run start") }
+      async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Client/"}) "fable yarn-run start-sample") }
     ] |> Async.Parallel |> Async.RunSynchronously |> ignore
 )
 
