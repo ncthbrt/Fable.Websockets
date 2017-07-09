@@ -18,10 +18,10 @@ module Suave =
     let private flip f a b = f (b,a)
 
     let private sendCloseFrame (webSocket:WebSocket) (code:ClosedCode) reason = socket {        
-        let firstBytes = code |> fromClosedCode |> System.BitConverter.GetBytes // First 16 bits are for code
+        let firstBytes = code |> fromClosedCode |> System.BitConverter.GetBytes |> Array.rev  // First 16 bits are for code
         let secondBytes = reason |> UTF8.bytes // Rest is for reason
-        let okStatusCode = Array.concat [firstBytes;secondBytes] |> ByteSegment              
-        do! webSocket.send Close okStatusCode true              
+        let payload = Array.concat [firstBytes;secondBytes] |> ByteSegment                       
+        do! webSocket.send Close payload true              
     }
 
     let private sendMessage<'clientProtocol> (webSocket: WebSocket) (payload:'clientProtocol) = 
@@ -58,7 +58,6 @@ module Suave =
         use cancellationTokenSource = new CancellationTokenSource()
         let token = cancellationTokenSource.Token      
                 
-
         let receiveSubject = Subject<WebsocketEvent<'serverProtocol>> ()
         let sendSubject = Subject<'clientProtocol> ()
 

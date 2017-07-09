@@ -20,16 +20,18 @@ let [<PassGenerics>] private receiveMessage<'clientProtocol> (receiveSubject:Sub
     |> receiveSubject.Next
     |> toObj
 
-let private receiveCloseEvent<'clientProtocol, 'serverProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (sendSubject:Subject<'serverProtocol>) (closeEvent:CloseEvent) =         
-    do sendSubject.Completed()
-    do receiveSubject.Completed()
+let private receiveCloseEvent<'clientProtocol, 'serverProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (sendSubject:Subject<'serverProtocol>) (closeEvent:CloseEvent) =             
     let closedCode = (toClosedCode<<uint16) closeEvent.code
     let payload  = { code = closedCode; reason= closeEvent.reason; wasClean=closeEvent.wasClean }    
-    
-    payload 
+        
+    do payload 
     |> WebsocketEvent.Closed 
-    |> receiveSubject.Next  
-    |> toObj
+    |> receiveSubject.Next      
+
+    do sendSubject.Completed()
+    do receiveSubject.Completed()
+    
+    obj()
 
 let private sendMessage (websocket:WebSocket) (receiveSubject:Subject<WebsocketEvent<'a>>) msg =    
     try 
@@ -58,7 +60,7 @@ let [<PassGenerics>] public establishWebsocketConnection<'serverProtocol, 'clien
         else ()    
 
     websocket.onmessage <- fun msg -> (receiveMessage<'clientProtocol> receiveSubject msg)
-    websocket.onclose <- fun msg -> receiveCloseEvent receiveSubject sendSubject msg
+    websocket.onclose <- fun msg -> (receiveCloseEvent receiveSubject sendSubject msg)
     websocket.onopen <- fun _ -> receiveSubject.Next Opened |> toObj                                 
     websocket.onerror <- fun _ -> receiveSubject.Next Error |> toObj                                     
     

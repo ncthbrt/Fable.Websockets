@@ -39,6 +39,7 @@ type ApplicationMsg =
     | SubmitUserEmail of string    
     | OpenChildFolder of string
     | OpenFile of string
+    | OpenParentFolder
     | CloseFile
 
 type MsgType = Msg<ServerMsg,ClientMsg,ApplicationMsg>
@@ -66,6 +67,7 @@ let inline applicationMsgUpdate (msg: ApplicationMsg) prevState =
     | OpenChildFolder folder -> prevState, Cmd.ofSocketMessage prevState.socket (MoveToSubdirectory folder)
     | OpenFile file -> prevState, Cmd.ofSocketMessage prevState.socket (GetFileContents file)    
     | CloseFile -> prevState, Cmd.ofSocketMessage prevState.socket ListCurrentDirectory
+    | OpenParentFolder -> prevState, Cmd.ofSocketMessage prevState.socket MoveToParentDirectory
 
 let inline update msg prevState = 
     match msg with
@@ -97,7 +99,7 @@ let fileEntrySubview dispatch fileReference =
 
 
 let folderView (folder: string, files: FileReference list) dispatch =        
-    let headers = [R.h1 [] [R.str <| "☝️ "+folder];R.br []] 
+    let headers = [R.a [Href "#"; OnClick (fun _ -> dispatch (ApplicationMsg OpenParentFolder))] [R.str <| "☝️ "+folder];R.br []] 
     let files = files 
                 |> List.fold (fun prev fileReference -> (fileEntrySubview dispatch fileReference) @ prev) [] 
                 |> List.rev

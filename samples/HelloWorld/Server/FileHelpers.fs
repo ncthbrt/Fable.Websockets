@@ -40,9 +40,9 @@ let private withEnding (ending:string) (str:string) =
         | Some i -> str + (right ending i)
         | None -> str
 
+let normalize (path:string) = Path.GetFullPath (path.Replace('/', '\\') |> withEnding "\\")
 
 let isChildPathOf (baseDirPath:string) (targetPath:string) =
-    let normalize (path:string) = Path.GetFullPath (path.Replace('/', '\\') |> withEnding "\\")
 
     let normalizedPath = normalize targetPath
     let normalizedBaseDirPath = normalize baseDirPath

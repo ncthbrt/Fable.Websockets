@@ -51,7 +51,6 @@ let fileGuard prevState =
         | (OpenFile d) as effect -> if isAccessViolation d then AccessViolation else effect            
         | effect -> effect
 
-
 let reduceSocketMessage prevState: ServerMsg -> (ServerState*Effect<ClientMsg>) =
     let authenticationGuard = authenticationGuard prevState
     let fileGuard = fileGuard prevState
@@ -85,12 +84,12 @@ let effects socketEventSink dispatcher closeHandle = function
                     // Dispatch action to set current directory
                     DirectoryOpened newDirectory |> dispatcher
                     // Send directory listing to client
-                    getDirectoryListing newDirectory  |> fun listing -> ClientMsg.DirectoryChanged (newDirectory,listing) |> socketEventSink                        
+                    getDirectoryListing newDirectory  |> fun listing -> ClientMsg.DirectoryChanged (newDirectory |> normalize ,listing) |> socketEventSink                        
                 else 
                     // Notify client that file doesn't exist
                     ClientMsg.NotFound (FileReference.Folder newDirectory) |> socketEventSink
 
-              | state, ListCurrentDirectory -> getDirectoryListing state.currentDirectory |> fun listing -> DirectoryListing (state.currentDirectory, listing) |> socketEventSink 
+              | state, ListCurrentDirectory -> getDirectoryListing state.currentDirectory |> fun listing -> DirectoryListing (state.currentDirectory |> normalize, listing) |> socketEventSink 
               | state, OpenFile file -> 
                     let path = state.currentDirectory +/ file
                     if File.Exists path then 
