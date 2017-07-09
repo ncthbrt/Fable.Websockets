@@ -32,6 +32,7 @@ type Model = { viewModel: ViewModel;
                connectionState: ConnectionState; 
                socket: SocketHandle<ServerMsg,ClientMsg>
                email: string
+               initialDirectory: string option
              }
 
 type ApplicationMsg = 
@@ -48,14 +49,20 @@ let inline initialState () =
     ({ connectionState = NotConnected
        viewModel = EmailPrompt ""
        email="" 
-       socket = SocketHandle.Blackhole()        
+       socket = SocketHandle.Blackhole()      
+       initialDirectory = None  
      }, Cmd.none)
 
 let inline socketMsgUpdate (msg:ClientMsg) prevState = 
     match msg with    
     | ClientMsg.Challenge -> prevState, Cmd.ofSocketMessage prevState.socket (Greet {email=prevState.email})
     | Welcome -> prevState, Cmd.ofSocketMessage prevState.socket ListCurrentDirectory
-    | DirectoryListing d -> { prevState with viewModel = Folder d } , Cmd.none
+    | DirectoryListing ((name,listing) as d) ->
+        let initialDirectory =
+            match prevState.initialDirectory with 
+            | None -> Some name
+            | (Some _) as id -> id
+        ({ prevState with viewModel = Folder d; initialDirectory = initialDirectory  }, Cmd.none)
     | NotFound fileRef -> prevState, Cmd.none
     | DirectoryChanged fileRef -> prevState, Cmd.ofSocketMessage prevState.socket ListCurrentDirectory
     | FileContents contents -> { prevState with viewModel = File (contents.name,contents.contents)  }, Cmd.none    
@@ -98,8 +105,13 @@ let fileEntrySubview dispatch fileReference =
     | FileReference.Folder folder -> [R.a [Href "#"; OnClick (fun _ -> (dispatch<<ApplicationMsg<<OpenChildFolder) folder)] [R.str ("📁" + folder)]; R.br []]    
 
 
-let folderView (folder: string, files: FileReference list) dispatch =        
-    let headers = [R.a [Href "#"; OnClick (fun _ -> dispatch (ApplicationMsg OpenParentFolder))] [R.str <| "☝️ "+folder];R.br []] 
+let folderView intialDirectory (folder: string, files: FileReference list) dispatch =        
+    
+    let headers = if intialDirectory = folder then
+                    [R.div [] [R.str folder]; R.br []]                     
+                  else
+                    [R.a [Href "#"; OnClick (fun _ -> dispatch (ApplicationMsg OpenParentFolder))] [R.str <| "☝️ "+folder];R.br []]                     
+
     let files = files 
                 |> List.fold (fun prev fileReference -> (fileEntrySubview dispatch fileReference) @ prev) [] 
                 |> List.rev
@@ -112,7 +124,7 @@ let view model dispatch =
 
     match model.viewModel with
     | EmailPrompt email -> emailView email dispatch 
-    | Folder f -> folderView f dispatch
+    | Folder f -> folderView (model.initialDirectory |> Option.get) f  dispatch
     | File (name, contents) -> fileView name contents dispatch
     | NoViewModel -> loader
     

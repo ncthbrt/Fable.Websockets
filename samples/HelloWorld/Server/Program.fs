@@ -28,7 +28,7 @@ type Event<'serverProtocol>  =
     | DirectoryOpened of string
 
 type Effect<'clientProtocol> =     
-    | Send of 'clientProtocol
+    | Send of 'clientProtocol    
     | OpenDirectory of string
     | ListCurrentDirectory
     | OpenFile of string    
