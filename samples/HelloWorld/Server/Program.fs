@@ -95,7 +95,7 @@ let effects socketEventSink dispatcher closeHandle = function
                     let path = state.currentDirectory +/ file
                     if File.Exists path then 
                         let bytes = File.ReadAllBytes path 
-                        let fileContents = FileContents { name = path; contents = bytes }
+                        let fileContents = FileContents { name = path; contents = bytes |> UTF8.toString }
                         fileContents |> socketEventSink
                     else 
                         NotFound (File path) |> socketEventSink                            

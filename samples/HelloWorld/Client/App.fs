@@ -22,6 +22,8 @@ open Fable.Websockets.Elmish.Types
 
 type ViewModel = 
     | EmailPrompt of string    
+    | Folder of (string*(FileReference list))
+    | File of string*string
     | NoViewModel  
 
 type ConnectionState = NotConnected | Connected    
@@ -30,7 +32,6 @@ type Model = { viewModel: ViewModel;
                connectionState: ConnectionState; 
                socket: SocketHandle<ServerMsg,ClientMsg>
                email: string
-               folder: (string*(FileReference list)) option
              }
 
 type ApplicationMsg = 
@@ -38,6 +39,7 @@ type ApplicationMsg =
     | SubmitUserEmail of string    
     | OpenChildFolder of string
     | OpenFile of string
+    | CloseFile
 
 type MsgType = Msg<ServerMsg,ClientMsg,ApplicationMsg>
 
@@ -45,24 +47,25 @@ let inline initialState () =
     ({ connectionState = NotConnected
        viewModel = EmailPrompt ""
        email="" 
-       socket = SocketHandle.Blackhole() 
-       folder = None 
+       socket = SocketHandle.Blackhole()        
      }, Cmd.none)
 
 let inline socketMsgUpdate (msg:ClientMsg) prevState = 
     match msg with    
     | ClientMsg.Challenge -> prevState, Cmd.ofSocketMessage prevState.socket (Greet {email=prevState.email})
     | Welcome -> prevState, Cmd.ofSocketMessage prevState.socket ListCurrentDirectory
-    | DirectoryListing d -> { prevState with folder = Some d } , Cmd.none
+    | DirectoryListing d -> { prevState with viewModel = Folder d } , Cmd.none
     | NotFound fileRef -> prevState, Cmd.none
     | DirectoryChanged fileRef -> prevState, Cmd.ofSocketMessage prevState.socket ListCurrentDirectory
-    | FileContents contents -> prevState, Cmd.none    
+    | FileContents contents -> { prevState with viewModel = File (contents.name,contents.contents)  }, Cmd.none    
+
 let inline applicationMsgUpdate (msg: ApplicationMsg) prevState =
     match msg with
     | SubmitUserEmail email -> ({ prevState with viewModel = NoViewModel }, Cmd.tryOpenSocket "ws://localhost:8083/websocket")
     | SetEmailText email -> ({ prevState with viewModel = EmailPrompt email; email = email }, Cmd.none)
     | OpenChildFolder folder -> prevState, Cmd.ofSocketMessage prevState.socket (MoveToSubdirectory folder)
     | OpenFile file -> prevState, Cmd.ofSocketMessage prevState.socket (GetFileContents file)    
+    | CloseFile -> prevState, Cmd.ofSocketMessage prevState.socket ListCurrentDirectory
 
 let inline update msg prevState = 
     match msg with
@@ -79,15 +82,24 @@ let emailView (email:string) dispatch =
         R.input [Type "submit"; OnClick (fun e-> (dispatch<<ApplicationMsg<<SubmitUserEmail<<string) email)]
     ]
 
-let fileEntryView dispatch fileReference =
+let fileView name contents dispatch = 
+    R.div [] 
+          [
+             R.a [Href "#" ;OnClick (fun _ -> dispatch (ApplicationMsg CloseFile))] [R.str <| "👈" + name]
+             R.br []
+             R.text [] [R.str contents]
+          ]
+
+let fileEntrySubview dispatch fileReference =
     match fileReference with
-    | File file -> [R.a [Href "#";OnClick (fun _ -> (dispatch<<ApplicationMsg<<OpenFile) file)] [R.str ("📝" + file)]; R.br []]
-    | Folder folder -> [R.a [Href "#"; OnClick (fun _ -> (dispatch<<ApplicationMsg<<OpenChildFolder) folder)] [R.str ("📁" + folder)]; R.br []]    
+    | FileReference.File file -> [R.a [Href "#";OnClick (fun _ -> (dispatch<<ApplicationMsg<<OpenFile) file)] [R.str ("📝" + file)]; R.br []]
+    | FileReference.Folder folder -> [R.a [Href "#"; OnClick (fun _ -> (dispatch<<ApplicationMsg<<OpenChildFolder) folder)] [R.str ("📁" + folder)]; R.br []]    
+
 
 let folderView (folder: string, files: FileReference list) dispatch =        
     let headers = [R.h1 [] [R.str <| "☝️ "+folder];R.br []] 
     let files = files 
-                |> List.fold (fun prev fileReference -> (fileEntryView dispatch fileReference) @ prev) [] 
+                |> List.fold (fun prev fileReference -> (fileEntrySubview dispatch fileReference) @ prev) [] 
                 |> List.rev
 
     R.div [] (headers @ files)
@@ -98,12 +110,9 @@ let view model dispatch =
 
     match model.viewModel with
     | EmailPrompt email -> emailView email dispatch 
-    | NoViewModel -> 
-        match model.connectionState with
-        | NotConnected -> loader
-        | Connected -> match model.folder with
-                       | None ->  loader
-                       | Some f -> folderView f dispatch
+    | Folder f -> folderView f dispatch
+    | File (name, contents) -> fileView name contents dispatch
+    | NoViewModel -> loader
     
 
 Program.mkProgram initialState update view

@@ -6,7 +6,7 @@ type FileReference =
     | File of string 
     | Folder of string
 
-type FileContents = { name:string; contents: byte[] }
+type FileContents = { name:string; contents:string }
 
 type ClientMsg =
     | Challenge // Server asks client to identify itself    
