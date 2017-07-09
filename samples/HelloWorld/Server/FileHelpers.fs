@@ -7,11 +7,13 @@ open HelloWorld.Protocol
 /// Custom operator for combining paths
 let ( +/ ) path1 path2 = Path.Combine(path1, path2)
     
-let initialDirectory = (Directory.GetCurrentDirectory()) +/ "./wwwroot"
+
 
 let getDirectoryListing directory = 
-     let directories = Directory.GetDirectories directory |> Seq.map FileReference.Folder
-     let files = Directory.GetFiles directory |> Seq.map FileReference.File
+         
+     let directories = Directory.GetDirectories directory |> Seq.map (Path.GetFileName >> FileReference.Folder)     
+     let files = Directory.GetFiles directory |> Seq.map (Path.GetFileName>>FileReference.File)
+     
      directories |> Seq.append files |> Seq.toList
 
 // The following code was ported from 
@@ -37,7 +39,8 @@ let private withEnding (ending:string) (str:string) =
         match possibleResult with
         | Some i -> str + (right ending i)
         | None -> str
-        
+
+
 let isChildPathOf (baseDirPath:string) (targetPath:string) =
     let normalize (path:string) = Path.GetFullPath (path.Replace('/', '\\') |> withEnding "\\")
 
@@ -46,3 +49,4 @@ let isChildPathOf (baseDirPath:string) (targetPath:string) =
     
     normalizedPath.StartsWith(normalizedBaseDirPath, StringComparison.OrdinalIgnoreCase)
     
+let initialDirectory = "./wwwroot" 

@@ -55,7 +55,7 @@ Target "Build" (fun _ ->
 
 Target "RunElmishSample" (fun _ ->
     // Start client
-    [ async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Server/"}) "run") }
+    [ async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Server/"}) "watch run") }
       async { return (DotNetCli.RunCommand (fun p -> {p with WorkingDir = "./samples/HelloWorld/Client/"}) "fable yarn-run start-sample") }
     ] |> Async.Parallel |> Async.RunSynchronously |> ignore
 )

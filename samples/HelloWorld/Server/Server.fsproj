@@ -13,5 +13,8 @@
     <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />
     <ProjectReference Include="../../../src/Fable.Websockets.Suave/Fable.Websockets.Suave.fsproj" />
   </ItemGroup>
+   <ItemGroup>
+    <DotNetCliToolReference Include="Microsoft.DotNet.Watcher.Tools" Version="1.0.0" />
+  </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>

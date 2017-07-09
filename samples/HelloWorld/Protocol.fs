@@ -10,10 +10,10 @@ type FileContents = { name:string; contents: byte[] }
 
 type ClientMsg =
     | Challenge // Server asks client to identify itself    
-    | Welcome of string // Challenge was received. User can now perform queries  
-    | DirectoryListing of FileReference list  // Response to ListCurrentDirectory
+    | Welcome // Challenge was received. User can now perform queries  
+    | DirectoryListing of (string*FileReference list)  // Response to ListCurrentDirectory
     | NotFound of FileReference // Response to OpenDirectory or GetFileContents when path doesn't exist
-    | DirectoryChanged of FileReference list // Acknowledgement that directory has changed
+    | DirectoryChanged of (string*FileReference list) // Acknowledgement that directory has changed
     | FileContents of FileContents // Response to GetFileContents
 
 

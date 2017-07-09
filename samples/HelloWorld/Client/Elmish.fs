@@ -68,6 +68,3 @@ module Cmd =
     [<PassGenerics>]    
     let public closeSocket (socket: SocketHandle<'serverMsg,'clientMsg>) code reason =            
         [fun (dispatcher : Elmish.Dispatch<Msg<'serverMsg,'clientMsg,'applicationMsg>>) -> do socket.CloseHandle code reason] 
-
-
-
