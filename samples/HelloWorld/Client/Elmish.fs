@@ -6,72 +6,68 @@ open Fable.Websockets.Protocol
 open FSharp.Collections
 open Fable.Websockets.Client
 open Fable.Websockets.Protocol
-// type Program<'arg, 'model, 'msg, 'view> = {
-//     init : 'arg -> 'model * Cmd<'msg>
-//     update : 'msg -> 'model -> 'model * Cmd<'msg>
-//     subscribe : 'model -> Cmd<'msg>
-//     view : 'model -> Dispatch<'msg> -> 'view
-//     setState : 'model -> Dispatch<'msg> -> unit
-//     onError : (string*exn) -> unit
-// }
-type ConnectionState = NotConnected | Connected
 
-type WebsocketModel<'model, 'serverMsg, 'clientMsg> = 
-    { applicationModel: 'model; 
-      websocketSubscription: IDisposable option; 
-      websocketSink: ('serverMsg -> unit); 
-      connectionState: ConnectionState 
-    }
+module Types =
+    type SocketHandle<'serverMsg,'clientMsg> (sink: 'serverMsg -> unit, 
+                                              source: IObservable<WebsocketEvent<'clientMsg>>, 
+                                              closeHandle: ClosedCode -> string -> unit) =             
+        member val internal ConnectionId = System.Guid.NewGuid()
+        member val internal CloseHandle = closeHandle
+        member val internal Sink = sink
+        member val internal Source = source    
+        member val internal Subscription:IDisposable option = None with get, set
+        
+        override x.GetHashCode() =
+            x.ConnectionId.GetHashCode()
 
+        override x.Equals(b) =
+            match b with
+            | :? SocketHandle<'serverMsg,'clientMsg> as c -> x.ConnectionId = c.ConnectionId
+            | _ -> false
+    type Msg<'serverMsg, 'clientMsg, 'applicationMsg> =
+            | WebsocketMsg of SocketHandle<'serverMsg,'clientMsg> * WebsocketEvent<'clientMsg>
+            | ApplicationMsg of 'applicationMsg
 
-type Msg<'clientMsg, 'applicationMsg> =
-    | Websocket of WebsocketEvent<'clientMsg>
-    | Application of 'applicationMsg
+module SocketHandle =        
+    open Types
+    let Blackhole () : SocketHandle<'serverMsg,'clientMsg> = 
+        SocketHandle<'serverMsg,'clientMsg>(ignore, Fable.Websockets.Observables.Subject(),fun _ _ -> ())
 
-type WebsocketConnection =         
-    private { closeHandle: ClosedCode -> string -> unit; sink: obj->unit; subscription: IDisposable }
+    [<PassGenerics>]
+    let Create address (dispatcher: Elmish.Dispatch<Msg<'serverMsg,'clientMsg,'applicationMsg>>) =         
+        let (sink,source, closeHandle) = establishWebsocketConnection<'serverMsg,'clientMsg> address                    
+        let connection = SocketHandle<'serverMsg, 'clientMsg> (sink,source,closeHandle)
+        
+        let subscription = source 
+                           |> Observable.subscribe (fun msg -> Msg.WebsocketMsg (connection,msg) |> dispatcher)                                
+                           |> Some
+
+        connection.Subscription <- subscription
+
     
-    static member private UntypedSink<'serverMsg> (sink:'serverMsg->unit) (msg:obj) =
-        match msg with
-        | :? 'serverMsg as m -> sink m
-        | _ -> failwith "Fail this message is of the incorrect type"
 
-    static member Create<'serverMsg,'clientMsg> address dispatcher= 
-        let (sink,source, closeHandle) = establishWebsocketConnection<'serverMsg,'clientMsg> address            
-
-        let websocketSubscription = source |> Observable.subscribe (Websocket >> dispatcher)
-        let websocketSink = (WebsocketConnection.UntypedSink<'serverMsg> sink)
-        let websocketCloseHandle = closeHandle
-        
-        { closeHandle=closeHandle; sink= websocketSink; subscription=websocketSubscription }
-        
-
+                      
 module Cmd =
     open System
     open FSharp.Collections
 
     open Fable.Websockets.Client
     open Fable.Websockets.Protocol
-
-    let mutable private connections : Map<string,WebsocketConnection> = Map.empty    
+    open Types
     
-    let public ofSocketMessage (message:'serverMsg): Elmish.Cmd<'msg> =         
-        [fun dispatch -> websocketSink message]
+    
+    [<PassGenerics>]    
+    let public ofSocketMessage (socket: SocketHandle<'serverMsg,'clientMsg>) (message:'serverMsg) =             
+        [fun (dispatcher : Elmish.Dispatch<Msg<'serverMsg,'clientMsg,'applicationMsg>>) -> socket.Sink message]
     
 
-    let public openSocket<'serverMsg,'clientMsg> address =         
-        match websocketSubscription with
-        | Some _ -> failwith "This library only supports a single websocket connection at a time"
-        | None -> 
-            [fun dispatcher ->
-                let (sink,source, closeHandle) = establishWebsocketConnection<'serverMsg,'clientMsg> address            
+    [<PassGenerics>]
+    let public tryOpenSocket address =            
+        [fun (dispatcher : Elmish.Dispatch<Msg<'serverMsg,'clientMsg,'applicationMsg>>) -> SocketHandle.Create address dispatcher]
 
-                websocketSubscription <- source |> Observable.subscribe (Websocket >> dispatcher) |> Some                                                
-                websocketSink  <- (untypedSink<'serverMsg> sink)
-                websocketCloseHandle <- closeHandle
-            ]
+    [<PassGenerics>]    
+    let public closeSocket (socket: SocketHandle<'serverMsg,'clientMsg>) code reason =            
+        [fun (dispatcher : Elmish.Dispatch<Msg<'serverMsg,'clientMsg,'applicationMsg>>) -> do socket.CloseHandle code reason] 
 
-    let public closeSocket code reason =         
-        [ fun _ -> websocketCloseHandle code reason ]
 
 

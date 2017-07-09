@@ -12,75 +12,71 @@ open Elmish
 open Elmish.React
 
 open Fable.Websockets.Client
-
+open Fable.Websockets.Protocol
 
 open Fable.Helpers.React.Props
 module R = Fable.Helpers.React
 
-type ConnectionState = NotConnected | Connected
+open Fable.Websockets.Elmish
+open Fable.Websockets.Elmish.Types
 
 type ViewModel = 
-    | FileView of FileContents
+    | EmailPrompt of string
+    | Loading
+    | FileView of FileContents    
     | FolderListing of string*(FileReference list)    
 
+type ConnectionState = NotConnected | Connected    
 
-type WebsocketModel<'a> = 
-    { applicationModel: 'a; 
-      websocketSubscription: IDisposable option; 
-      websocketSink: (ServerMsg -> unit); 
-      connectionState: ConnectionState 
-    }
-        
-let initialWebsocketState initFunction =
-    let (appModel,cmd) = initFunction()
-    ({
-        applicationModel = appModel
-        websocketSubscription = None
-        websocketSink = ignore
-        connectionState = NotConnected
-    }, cmd)
+type Model = { viewModel: ViewModel; 
+               connectionState: ConnectionState; 
+               socket: SocketHandle<ServerMsg,ClientMsg>
+               email: string
+             }
 
-type ApplicationModel = { viewModel: ViewModel  Option}
+type ApplicationMsg = 
+    | SetEmailText of string
+    | SubmitUserEmail of string
 
+type MsgType = Msg<ServerMsg,ClientMsg,ApplicationMsg>
 
+let inline initialState () =  
+    ({ connectionState = NotConnected; viewModel = EmailPrompt ""; email=""; socket = SocketHandle.Blackhole() }, Cmd.none)
 
-type ClientEvent = | WebsocketEvent of Fable.Websockets.Protocol.WebsocketEvent<ClientMsg>              
-                   | SubscriptionCreated of IDisposable*(ServerMsg -> unit)
-
-let initialState () = ({ connectionState = NotConnected; 
-                         viewModel = None; 
-                         websocketSubscription = None; 
-                         websocketSink = ignore 
-                       }, Cmd.none
-                      )
+let inline socketMsgUpdate (msg:ClientMsg) prevState = 
+    match msg with    
+    | ClientMsg.Challenge -> prevState, Cmd.ofSocketMessage prevState.socket (Greet {email=prevState.email})
+    | Welcome -> prevState, Cmd.none
+    | DirectoryListing files -> prevState, Cmd.none
+    | NotFound fileRef -> prevState, Cmd.none
+    | DirectoryChanged fileRef -> prevState, Cmd.none
+    | FileContents contents -> prevState, Cmd.none    
 
 
-let reducer event prevState = 
-    match event with 
-    | WebsocketEvent e -> prevState, Cmd.none    
-    | SubscriptionCreated (subscription,sink) -> {prevState with websocketSubscription = Some subscription; }, Cmd.none
+let inline update msg prevState = 
+    match msg with
+    | ApplicationMsg (SubmitUserEmail email) -> ({ prevState with viewModel = Loading }, Cmd.tryOpenSocket "ws://localhost:8083/websocket")
+    | ApplicationMsg (SetEmailText email) -> ({ prevState with viewModel = EmailPrompt email; email = email }, Cmd.none)
+    | WebsocketMsg (socket, Opened) -> ({ prevState with socket = socket; connectionState = Connected }, Cmd.none)    
+    | WebsocketMsg (socket, Msg socketMsg) -> (socketMsgUpdate socketMsg prevState)            
+    | _ -> (prevState, Cmd.none)
 
 
-let mutable observableSubscription:System.IDisposable Option = None
+let emailView (email:string) dispatch =        
+    R.div[] [
+        R.h1 [] [R.str "Enter your email"]
+        R.br []
+        R.input [Value (!^email); OnChange (fun e-> (dispatch<<ApplicationMsg<<SetEmailText<<string) e.target?value)]
+        R.input [Type "submit"; OnClick (fun e-> (dispatch<<ApplicationMsg<<SubmitUserEmail<<string) email)]
+    ]
 
-let websocketSubscription initialState =
-    let subscription dispatcher = 
-        let (sink,source, closeHandle) = establishWebsocketConnection<ServerMsg,ClientMsg> "ws://127.0.0.1:8083/websocket"
+let view model dispatch = 
+    match model.viewModel with
+    | EmailPrompt email -> emailView email dispatch 
+    | Loading -> R.text [] [R.str "loading..."]
+    | _ -> R.div [] [R.str "This is a test message"] 
 
-        source 
-        |> Observable.subscribe (ClientEvent.WebsocketEvent >> dispatcher)        
-        |> SubscriptionCreated sink
-        |> dispatcher        
-
-                    
-    Cmd.ofSub subscription
-
-
-let view model dispatcher = 
-    R.div [] [R.str "This is a test message"]
-
-Program.mkProgram initialState reducer view
+Program.mkProgram initialState update view
 |> Program.withReact "root"
-
-|> Program.withSubscription websocketSubscription
+|> Program.withConsoleTrace
 |> Program.run

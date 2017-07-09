@@ -62,7 +62,7 @@ let reduceSocketMessage prevState: ServerMsg -> (ServerState*Effect<ClientMsg>) 
     let listCurrentDirectory = authenticationGuard Effect.ListCurrentDirectory           
 
     function
-    | Greet user -> ({ prevState with user = Some user }, Send Welcome)                     
+    | Greet user -> ({ prevState with user = Some user }, Send (Welcome prevState.currentDirectory))                     
     | ServerMsg.ListCurrentDirectory -> (prevState, listCurrentDirectory)
     | MoveToSubdirectory dir -> (prevState, openDirectory dir)
     | MoveToParentDirectory -> (prevState, openDirectory "../")
@@ -105,7 +105,7 @@ let effects socketEventSink dispatcher closeHandle = function
 
 let onConnectionEstablished closeHandle socketEventSource socketEventSink = 
 
-    let initialState = { currentDirectory= initialDirectory; user = None }        
+    let initialState = { currentDirectory = initialDirectory; user = None }        
     
     // Event Sources
     let socketEventSource = socketEventSource |> Observable.map WebsocketEvent // Feed of socket events 
