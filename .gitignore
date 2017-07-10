@@ -182,6 +182,7 @@ TestResults.xml
 TestResult.xml
 
 # Nuget outputs
+*.nupkg
 nuget/*.nupkg
 release.cmd
 release.sh

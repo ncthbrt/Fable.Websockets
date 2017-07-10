@@ -1,4 +1,5 @@
 <Project Sdk="FSharp.NET.Sdk;Microsoft.NET.Sdk">
+  <Import Project="..\Meta.props" />
   <PropertyGroup>
     <TargetFramework>netstandard1.6</TargetFramework>
   </PropertyGroup>
