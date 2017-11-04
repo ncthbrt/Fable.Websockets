@@ -12,6 +12,10 @@ module Suave =
     open Suave.Http    
     open System.Threading
 
+    module internal UTF8 =
+      let bytes(s : string) = System.Text.Encoding.UTF8.GetBytes s
+      let toString(bytes : byte[]) = System.Text.Encoding.UTF8.GetString bytes
+      
     let private jsonConverter = Fable.JsonConverter() :> JsonConverter
     let private fromJson value = JsonConvert.DeserializeObject(value, [|jsonConverter|])
     let private toJson value = JsonConvert.SerializeObject(value, [|jsonConverter|])
