@@ -1,11 +1,11 @@
 source https://nuget.org/api/v2
 
+nuget Fable.Browser.WebSocket
+nuget Fable.Elmish.Browser
 nuget FSharp.Core
 
 # Keep this version synced with dotnet-fable in .fsproj
 nuget Fable.Core
-
-clitool dotnet-fable
 
 # client packages
 nuget Fable.Import.Browser
@@ -17,6 +17,7 @@ nuget Fable.React
 nuget Suave
 nuget Newtonsoft.Json
 nuget Fable.JsonConverter
+nuget Thoth.Json
 
 // [ FAKE GROUP ]
 group NetcoreBuild

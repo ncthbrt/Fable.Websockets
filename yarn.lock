@@ -1229,15 +1229,17 @@ extsprintf@1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.0.2.tgz#e1080e0658e300b06294990cc70e1502235fd550"
 
-fable-loader@1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/fable-loader/-/fable-loader-1.0.5.tgz#4e9461e087a09fade39cc0e61e55d1951d28f6fe"
-  dependencies:
-    fable-utils "^1.0.0"
+fable-babel-plugins@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/fable-babel-plugins/-/fable-babel-plugins-2.2.0.tgz#2c61be1bd1afb1f03da4e66ccaa1bfecf92063a3"
+  integrity sha512-4g8CIyXCILk5LLiwNPtvtrPy3YuV5eJV18SYJCZxu3A1BSKNvPGHLSg5YcFJ2zt4qmBvSkBewlQ2bVQYG+TnrQ==
 
-fable-utils@^1.0.0:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/fable-utils/-/fable-utils-1.0.1.tgz#76046b1da137bd3474918532451c1d47651620af"
+fable-loader@^2.1.7:
+  version "2.1.7"
+  resolved "https://registry.yarnpkg.com/fable-loader/-/fable-loader-2.1.7.tgz#64dc9125af41a709cd2a3f614352c4daeaefaa16"
+  integrity sha512-1z8EoNWpNDRrGycygO0j63URniv0FjX5EZHjfnnDYbC9+bj2aOY2xGBGK1Mxohk3D4SfK63b5t5vXKOGqUPRzQ==
+  dependencies:
+    fable-babel-plugins "^2.2.0"
 
 faye-websocket@^0.10.0:
   version "0.10.0"
