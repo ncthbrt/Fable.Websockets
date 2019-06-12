@@ -1,11 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\Meta.props" />
   <PropertyGroup>
-    <TargetFramework>netstandard1.6</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../Shared/Observables.fs" />
-    <Compile Include="../Shared/Protocol.fs" />
+    <Compile Include="../Fable.Websockets.Client/Shared/*.fs" />
     <Compile Include="Server.fs" />    
     <Compile Include="Suave.fs" />
     </ItemGroup>

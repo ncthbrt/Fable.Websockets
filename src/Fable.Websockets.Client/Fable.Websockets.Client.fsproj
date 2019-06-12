@@ -5,15 +5,15 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>    
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../Shared/Observables.fs" />
-    <Compile Include="../Shared/Protocol.fs" />
+    <Compile Include="./Shared/Observables.fs" />
+    <Compile Include="./Shared/Protocol.fs" />
     <Compile Include="./src/Client.fs" />
   </ItemGroup>
   <!-- Add source files to "fable" folder in Nuget package -->
   <ItemGroup>
     <Content Include="*.fsproj" PackagePath="fable/" />
     <Content Include="src/**/*.fs" PackagePath="fable/src" />    
-    <Content Include="..\Shared\**\*.fs" PackagePath="Shared/" />    
+    <Content Include="Shared/**/*.fs" PackagePath="fable/Shared/" />    
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
