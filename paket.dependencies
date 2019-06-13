@@ -15,9 +15,8 @@ nuget Fable.React
 
 # server packages
 nuget Suave
-nuget Newtonsoft.Json
-nuget Fable.JsonConverter
 nuget Thoth.Json
+nuget Thoth.Json.Net
 
 // [ FAKE GROUP ]
 group NetcoreBuild

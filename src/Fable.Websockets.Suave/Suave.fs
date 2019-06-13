@@ -1,7 +1,7 @@
 namespace Fable.Websockets
 
 module Suave =
-    open Newtonsoft.Json
+    open Thoth.Json.Net
     open Microsoft.FSharp.Control
     open Fable.Websockets.Protocol    
     open Fable.Websockets.Server
@@ -15,10 +15,10 @@ module Suave =
     module internal UTF8 =
       let bytes(s : string) = System.Text.Encoding.UTF8.GetBytes s
       let toString(bytes : byte[]) = System.Text.Encoding.UTF8.GetString bytes
-      
-    let private jsonConverter = Fable.JsonConverter() :> JsonConverter
-    let private fromJson value = JsonConvert.DeserializeObject(value, [|jsonConverter|])
-    let private toJson value = JsonConvert.SerializeObject(value, [|jsonConverter|])
+
+    let inline toJson<'T> (x: 'T) = Encode.Auto.toString(0, x)
+    let inline fromJson<'T> json = Decode.Auto.unsafeFromString<'T>(json)
+
     let private flip f a b = f (b,a)
 
     let private sendCloseFrame (webSocket:WebSocket) (code:ClosedCode) reason = socket {        
