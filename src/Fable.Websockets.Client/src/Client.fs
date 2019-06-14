@@ -1,28 +1,32 @@
 module Fable.Websockets.Client
 
 open System
-open Fable.Core
-open Fable.Core.JsInterop
-open Fable.Import
-open Fable.Import.Browser
 
 open Fable.Websockets.Observables
 open Fable.Websockets.Protocol
 
-let private toObj () = obj()
+open Browser
+open Browser.Types
 
-let [<PassGenerics>] private receiveMessage<'clientProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (msgEvent:MessageEvent) =         
+open Thoth.Json
+
+let inline private toJson x = Encode.Auto.toString(0, x)
+let inline private ofJson<'T> json = Decode.Auto.unsafeFromString<'T>(json)
+
+let toObj () = obj()
+
+let inline private receiveMessage<'clientProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (msgEvent:MessageEvent) =         
     try
         let msg = ofJson<'clientProtocol> (string msgEvent.data)
         Msg msg
     with     
-        | e -> Exception e   
+        | e -> Exception e
     |> receiveSubject.Next
     |> toObj
 
-let private receiveCloseEvent<'clientProtocol, 'serverProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (sendSubject:Subject<'serverProtocol>) (closeEvent:CloseEvent) =             
-    let closedCode = (toClosedCode<<uint16) closeEvent.code
-    let payload  = { code = closedCode; reason= closeEvent.reason; wasClean=closeEvent.wasClean }    
+let inline private receiveCloseEvent<'clientProtocol, 'serverProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (sendSubject:Subject<'serverProtocol>) (closeEvent:CloseEvent) =
+    let closedCode = closeEvent.code
+    let payload  = { code = Protocol.toClosedCode (uint16 closedCode); reason= closeEvent.reason; wasClean=closeEvent.wasClean }    
         
     do payload 
     |> WebsocketEvent.Closed 
@@ -33,7 +37,7 @@ let private receiveCloseEvent<'clientProtocol, 'serverProtocol> (receiveSubject:
     
     obj()
 
-let private sendMessage (websocket:WebSocket) (receiveSubject:Subject<WebsocketEvent<'a>>) msg =    
+let inline private sendMessage (websocket: WebSocket) (receiveSubject:Subject<WebsocketEvent<'a>>) msg =    
     try 
         let jsonMsg = msg |> toJson
         do websocket.send jsonMsg    
@@ -41,7 +45,7 @@ let private sendMessage (websocket:WebSocket) (receiveSubject:Subject<WebsocketE
         | e -> receiveSubject.Next (Exception e)
 
 
-let [<PassGenerics>] public establishWebsocketConnection<'serverProtocol, 'clientProtocol> (uri:string) : 
+let inline public establishWebsocketConnection<'serverProtocol, 'clientProtocol> (uri:string) : 
     (('serverProtocol->unit)*IObservable<WebsocketEvent<'clientProtocol>>*(ClosedCode->string->unit)) = 
 
 
@@ -53,9 +57,9 @@ let [<PassGenerics>] public establishWebsocketConnection<'serverProtocol, 'clien
     let connection = (sendSubject.Subscribe (sendMessage websocket receiveSubject))
 
     let closeHandle (code:ClosedCode) (reason:string) = 
-        let state = websocket.readyState |> uint16 |> toReadyState
-        if state=Connecting || state=Open then                
-            websocket.close((float<<fromClosedCode) code, reason)          
+        let state = websocket.readyState
+        if state = WebSocketState.CONNECTING || state = WebSocketState.OPEN then
+            websocket.close(fromClosedCode code |> int, reason)          
             connection.Dispose() 
         else ()    
 

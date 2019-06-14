@@ -2,11 +2,12 @@ language: csharp
 sudo: required
 dist: trusty
 
-dotnet: 2.0.0
+dotnet: 2.1.300
 mono: latest
 
 before_install:
   - chmod +x ./build.sh
+  - chmod +x ./fake.sh
     # Repo for newer Node.js versions
   - curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
   # Repo for Yarn
@@ -18,5 +19,5 @@ cache:
   yarn: true
 
 script:
-  - ./build.sh Build
+  - ./build.sh target Build
   

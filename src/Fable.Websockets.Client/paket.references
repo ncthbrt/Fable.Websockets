@@ -1,4 +1,6 @@
 FSharp.Core
 Fable.Core
 Fable.Import.Browser
-dotnet-fable
+Thoth.Json
+Fable.Elmish.Browser
+Fable.Browser.WebSocket
