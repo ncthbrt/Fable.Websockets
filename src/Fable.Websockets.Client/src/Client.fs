@@ -16,13 +16,13 @@ let inline private ofJson<'T> json = Decode.Auto.unsafeFromString<'T>(json)
 let toObj () = obj()
 
 let inline private receiveMessage<'clientProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (msgEvent:MessageEvent) =         
-    try
-        let msg = ofJson<'clientProtocol> (string msgEvent.data)
-        Msg msg
-    with     
-        | e -> Exception e
-    |> receiveSubject.Next
-    |> toObj
+        try
+            let msg = ofJson<'clientProtocol> (string msgEvent.data)
+            Msg msg
+        with     
+            | e -> Exception e
+        |> receiveSubject.Next
+
 
 let inline private receiveCloseEvent<'clientProtocol, 'serverProtocol> (receiveSubject:Subject<WebsocketEvent<'clientProtocol>>) (sendSubject:Subject<'serverProtocol>) (closeEvent:CloseEvent) =
     let closedCode = closeEvent.code
@@ -35,7 +35,6 @@ let inline private receiveCloseEvent<'clientProtocol, 'serverProtocol> (receiveS
     do sendSubject.Completed()
     do receiveSubject.Completed()
     
-    obj()
 
 let inline private sendMessage (websocket: WebSocket) (receiveSubject:Subject<WebsocketEvent<'a>>) msg =    
     try 
@@ -65,7 +64,7 @@ let inline public establishWebsocketConnection<'serverProtocol, 'clientProtocol>
 
     websocket.onmessage <- fun msg -> (receiveMessage<'clientProtocol> receiveSubject msg)
     websocket.onclose <- fun msg -> (receiveCloseEvent receiveSubject sendSubject msg)
-    websocket.onopen <- fun _ -> receiveSubject.Next Opened |> toObj                                 
-    websocket.onerror <- fun _ -> receiveSubject.Next Error |> toObj                                     
+    websocket.onopen <- fun _ -> receiveSubject.Next Opened 
+    websocket.onerror <- fun _ -> receiveSubject.Next Error 
     
     (sendSubject.Next, receiveSubject :> IObservable<_>, closeHandle)
